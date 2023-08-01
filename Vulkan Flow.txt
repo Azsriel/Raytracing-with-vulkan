@@ -1,0 +1,133 @@
+VULKAN WORKFLOW:
+1: Instance creation
+2: Select physical device(s) to use
+3: Create a Logical device
+4: Specify Queue families to use
+5: Create a window Surface
+6: Create a SwapChain
+7: Wrap image aquired by SwapChain into a ImageView and a FrameBuffer
+8: Setup a render pass
+9: Create a Graphics pipeline using ShaderModules
+10: Create a Commandpool, allocate commandbuffers from the pool
+11: Record a commandbuffer with the following steps for a triangle
+    ->Begin the render pass;
+    ->bind the graphics pipeline;
+    ->Draw 3 vertices;
+    ->End the render pass;
+12: Main loop:
+    ->Aquire the next image from the swapchain;
+    ->select the appropriate commandbuffer and execute it (QueueSubmit);
+    ->return the image to the swapchain for presentation to the screen (QueuePresent);
+13: Since operations submitted to queues are asynchronous, need to set delays to ensure correct order of operations
+14: Execution of draw commandbuffer should wait until image aquisition is finished.
+15: QueuePresent needs to wait for the rendering to finish.
+
+Notes:
+
+
+Definitions:
+Instance:
+The connection between the application and the Vulkan library. 
+
+PhysicalDevice:
+The graphics Driver that vulkan will run on. 
+
+QueueFamilies:
+Almost every command needs to be passed through a queue. Queues from a certain queue family can only 
+allow a subset of commands. Queue Families need to be supported by the PhysicalDevice.
+
+Logical device:
+Interface to the PhysicalDevice. It specifies which queues to create and which features of the PhysicalDevice are
+going to be used. Multiple logical devices can be created from one physical Device if needed.
+#NOTE: Queues are automatically created, but handles to interface with them need to be seperately created.
+
+Window Surface:
+It represents an abstract type of surface to present rendered images to. Presenting to the surface needs a 
+queue family that supports it.
+
+SwapChain:
+an infrastructure that owns buffers that we render to before we visualize them to the screen. It is a queue of 
+images that are waiting to be presented onto the screen. Its general purpose is to synchronize presentation of
+images with the refresh rate of the screen.
+
+ImageView:
+It is needed to use an image in the render pipeline. It describes how to access the image and which part of the 
+image to access.
+
+Graphics Pipeline:
+Overview:
+Vertex/Index buffer -> Input assembler -> **Vertex Shader -> **Tessellation -> **Geometry Shader -> Rasterization
+    -> **Fragment Shader -> Color Blending.
+
+Input assembler: Collects raw vertex data from vertex/input buffers
+
+**Vertex Shader: Run for every vertex. Applies transformations to turn vertex positions from model to screen space.
+
+**Tessellation: Allows to subdevide geometry based on certain rules. This is often used to make surfaces like
+    brick walls and staircases look less flat when they are nearby. 
+
+**Geometry Shader: Runs on every primitive, and can discard it, or output more primitives. More flexible than 
+    Tessellation shaders, but very bad performance. Not recommended to use.
+
+Rasterization: Turns primitives into fragments. these fragments are the pixel elements that are filled on the
+    framebuffer. Fragments outside the screen or behind other objects are discarded.
+
+**Fragment shader: invoked for every fragment that is left and determines which framebuffer(s) the fragment is
+    written to and which color and depth values. 
+
+Color Blending: Applies operations to fragments that map to the same pixel.
+
+NOTE: **Means that they are programmable
+
+
+Shader Stage:
+To use shaders, we need to assign them to a specific pipeline stage during pipeline creation process.
+
+Pipeline layout:
+object that is used to specify Uniforms, which are the values that can be changed at draw time to alter the 
+behaviour of Shaders. They are commonly used to pass the transformation matrix to the vertex shader, or to 
+create texture samplers in the fragment shader.
+
+Render Pass:
+Tells vulkan about the framebuffer attachments that will be used during rendering. Specifies number of color and
+depth buffers, how many samples and how content of those buffers should be handled.
+
+Subpass:
+Rendering operations that depend on the content of framebuffers in previous passes, for example, a sequence of 
+post processing effects.
+
+Framebuffer:
+Object that references images that represent the attachment (like color attachment, or depth attachment).
+Every image in the swapchain should have a framebuffer.
+
+Command Buffer:
+Record of all operations you want to perform which are collectively sent to vulkan.
+
+CommandPool:
+Manage the memory used to store buffers. Command buffers are allocated from them. Each pool can only allocate 
+command buffers that are send to one type of queue family. Different queue families need different commandpools.
+
+Semaphores:
+Adds order between two different queue family operation. Wait only happens on the GPU
+
+Fence:
+Signal to let the CPU know when to wait or begin.
+
+DRAWING:
+-> Begin a render pass
+-> Bind the render Pipeline
+-> vkCmdDraw()
+-> End render pass
+
+MAIN LOOP: (drawFrame Function)
+-> Wait for previous Fence (Make sure fence is default initialized to active)
+-> Reset the Fence to inactive
+-> Aquire Image from swapchain, Signal semaphore to tell that image aquiring has been done (imageAvaiSema)
+-> Reset the command buffer
+-> Set the command buffer. It should wait until imageAvaiSema is active. It should signal renderDoneSema after 
+    it is done.
+-> Submit the command buffer to the graphics queue, signal Fence when done
+-> Submit the result back into the swapChain to show it onto the screen, wait for renderDoneSema before submitting
+-> pass swapchain and other info into Presentation queue
+->DONE
+
