@@ -6,7 +6,7 @@
 + Error Handling
 
 ## Skills Gained
-+ Learned Complete GPU initialization flow (See [[Vulkan Flow.txt]]
++ Learned Complete [GPU initialization flow](Vulkan%20Flow.txt)
 + Triangle init in Vulkan
 
 ## Todo
